@@ -5,6 +5,7 @@ minutes.
 """
 
 # Standard imports
+import argparse
 import logging
 import sys
 
@@ -15,12 +16,15 @@ import botocore
 def disable_renew():
     """Disable the hourly renewal of PO.DAAC S3 credentials."""
     
+    arg_parser = create_args()
+    args = arg_parser.parse_args()
+    prefix = args.prefix
     logger = get_logger()
     
     scheduler = boto3.client("scheduler")
     try:
         # Get schedule
-        get_response = scheduler.get_schedule(Name="confluence-renew")
+        get_response = scheduler.get_schedule(Name=f"{prefix}-renew")
         
         # Update schedule
         update_response = scheduler.update_schedule(
@@ -34,6 +38,16 @@ def disable_renew():
         logger.info("Disabled 'renew' Lambda function.")
     except botocore.exceptions.ClientError as e:
         handle_error(e, logger)
+        
+def create_args():
+    """Create and return argparser with arguments."""
+
+    arg_parser = argparse.ArgumentParser(description="Retrieve a list of S3 URIs")
+    arg_parser.add_argument("-p",
+                            "--prefix",
+                            type=str,
+                            help="Prefix that corresponds to environment workflow is running in.")
+    return arg_parser
     
 def get_logger():
     """Return a formatted logger object."""
